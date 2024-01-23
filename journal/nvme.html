@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVMe Secure Erase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        h3 {
+            color: #555;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border: 1px solid #ddd;
+            font-family: "Courier New", Courier, monospace;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>NVMe Secure Erase</h2>
+    <p><code>nvme-format</code>, part of <code>nvme-cli</code> (NVMe management command line interface), offers two Secure Erase options:</p>
+
+    <h3>Secure Erase Settings:</h3>
+    <p>This field specifies whether a secure erase should be performed as part of the format and the type of the secure erase operation. The erase applies to all user data, regardless of location (e.g., within an exposed LBA, within a cache, within deallocated LBAs, etc). Defaults to 0.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Value</th>
+                <th>Definition</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>0</td>
+                <td>No secure erase operation requested</td>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>User Data Erase: All user data shall be erased, contents of the user data after the erase is indeterminate. The controller may perform a cryptographic erase when a User Data Erase is requested if all user data is encrypted.</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Cryptographic Erase: All user data shall be erased cryptographically. This is accomplished by deleting the encryption key.</td>
+            </tr>
+            <tr>
+                <td>3-7</td>
+                <td>Reserved</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><em>NVM Express Base Specification Revision 1.3c May 24, 2018</em> states:</p>
+    <blockquote>
+        As part of the Format NVM command, the host may request a secure erase of the contents of the NVM. There are two types of secure erase. The User Data Erase erases all user content present in the NVM subsystem. The Cryptographic Erase erases all user content present in the NVM subsystem by deleting the encryption key with which the user data was previously encrypted.
+    </blockquote>
+
+    <h3>Usage</h3>
+    <ol>
+        <li>Install <code>nvme-cli</code></li>
+        <pre># nvme list</pre>
+        <li>List NVMe devices</li>
+        <pre>
+# nvme list
+
+Node             SN                   Model                                    Namespace Usage                      Format           FW Rev  
+---------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
+/dev/nvme0n1     XXXXXXXXXXXX         WDS250G2X0C-00L350                       1         250.06  GB / 250.06  GB    512   B +  0 B   101110WD
+        </pre>
+        <li>Verify Secure Erase support</li>
+        <pre>
+# nvme id-ctrl -H /dev/nvme0
+
+NVME Identify Controller:
+vid     : 0x15b7
+ssvid   : 0x15b7
+sn      : XXXXXXXXXXXX        
+mn      : WDS250G2X0C-00L350                      
+fr      : 101110WD
+...
+oacs    : 0x17
+  [1:1] : 0x1 Format NVM Supported
+...
+fna     : 0
+  [2:2] : 0 Crypto Erase Not Supported as part of Secure Erase
+        </pre>
+        <li>This device supports User Data Erase (value 1 in above table), but not Cryptographic Erase (value 2 in above table).</li>
+        <li>Issue Secure Erase command</li>
+        <pre>
+# nvme format /dev/nvme0 --ses=1
+Success formatting namespace:ffffffff
+        </pre>
+        <li>If errors were encountered, suspend and resume computer then re-run</li>
+        <pre>
+# nvme format /dev/nvme0 --ses=1
+NVME Admin command error:INVALID_FORMAT(410a)
+# systemctl -i suspend
+# nvme format /dev/nvme0 --ses=1
+Success formatting namespace:ffffffff
+        </pre>
+        <li>Verify</li>
+        <pre>
+# hexdump /dev/nvme0n1
+0000000 0000 0000 0000 0000 0000 0000 0000 0000
+*
+3a38b2e000
+        </pre>
+    </ol>
+
+    <h3>Notes</h3>
+    <ul>
+        <li>There are reports of <code>NVME Admin command error:INVALID_OPCODE(2001)</code> on Samsung NVMe SSDs being resolved by suspending and waking the computer as well.</li>
+        <li>The manpage on specifying the character device (e.g., <code>/dev/nvme0</code>) vs the namespace block device (e.g., <code>/dev/nvme0n1</code>): If the character device is given, the namespace identifier will default to 0xffffffff to send the format to all namespace, but can be overridden to any namespace with the ‘namespace-id’ option. If the block device is given, the namespace identifier will default to the namespace id of the block device given, but can be overridden with the same option.</li>
+        <li>For more information on NVMe character devices (e.g., <code>/dev/nvme0</code>) vs. namespace block devices (e.g., <code>/dev/nvme0n1</code>), see <a href="https://superuser.com/questions/1342623/why-is-there-both-character-device-and-block-device-for-nvme" target="_blank">Why is there both character device and block device for nvme?</a> and <a href="https://unix.stackexchange.com/questions/337361/managing-nvme-namespaces" target="_blank">Managing NVMe Namespaces</a>.</li>
+    </ul>
+
+</body>
+
+</html>

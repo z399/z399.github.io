@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>~ so long</title>
+    <link href="style.css" rel="stylesheet" type="text/css" media="all">
+      <link rel="icon" 
+      type="image/gif" 
+      href="pics/icon.png">
+  </head>
+  <body>
+      <header class="hdr">
+        [<a href="index.html">home</a>] 
+        [<a href="root.html">root</a>-<a href="journal.html">journal</a>]
+        [<a href="projek.html">PROJEK</a>] 
+        [<a href="wq.html">:wq</a>]
+        <br><br>
+        
+    </header>
+    <style>
+      body {
+        text-align: center;
+      }
+    </style>
+    <img src="pics/out.png" width=350px>
+
+    <div class="exit" id="log">
+      <h3>~ FACTS!</h3>
+      <style>
+        hr {
+          width: 40%; 
+          margin: 20px auto; 
+          border: 1px dotted;
+        }
+      </style>
+      
+      <h2>“FreeBSD is shit.”</h2>
+      <p>“systemd is shit.”</p>
+  
+      <p>Also, all these things about desktop Linux completely apply to anything else using the software stack. It doesn’t matter if it’s FreeBSD or whatever. FreeBSD also has a less secure kernel, malloc, etc. but at least it doesn’t have nonsense like systemd greatly expanding attack surface written with tons of poorly written C code.</p>
+  
+      <h2>“QubesOS is kinda shit.”</h2>
+      <p>QubesOS would be far better off with a different OS inside the guests. It’s not really a Linux distribution though and can be assembled out of other distributions. Most of the work has been Linux integration though. The biggest flaw with it is that it’s trying to assemble a secure system out of garbage (x86, desktop Linux). It does a great job at implementing some of the best compartmentalization available despite the challenges. It could be a lot better if the components it uses cared more about security.</p>
+  
+      <h2>“Desktop operating system encryption is shit.”</h2>
+      <p>The traditional desktop OS approach to disk encryption is also awful since it’s totally opposed to keeping data at rest. I recommend looking at the approach on iOS which Android has mostly adopted at this point. In addition to all the hardware support, the OS needs to go out of the way to support for fine-grained encryption where lots of data can be kept at rest when locked. Android also provides per-profile encryption keys, but has catching up to do in terms of making it easier to keep data at rest when locked. It has <a href="https://developer.android.com/reference/android/security/keystore/KeyGenParameterSpec.Builder.html#setUnlockedDeviceRequired(boolean)" target="_blank">this</a> now as a nicer approach to keeping hardware-backed keys at rest, but iOS makes it easier by letting you just mark files as being in one of 2 encryption classes that can become at rest when locked. It even has a way to use asymmetric encryption to append to files when locked, without being able to read them.</p>
+  
+      <h2>“Linux applications are shit.”</h2>
+      <p>The userspace Linux desktop software stack is far worse relative to the others. Security and privacy are such low priorities. It’s really a complete joke and it’s hard to even choose where to start in terms of explaining how bad it is. There’s almost a complete disregard for sandboxing / privilege separation / permission models, exploit mitigations, memory safe languages (lots of cultural obsession with using memory unsafe C everywhere), etc. and there isn’t even much effort put into finding and fixing the bugs.</p>
+  
+      <h2>“Debian is shit.”</h2>
+      <p>Look at something like Debian where software versions are totally frozen and only a tiny subset of security fixes receiving CVEs are backported, the deployment of even the legacy exploit mitigations from 2 decades ago is terrible and work on systems integration level security features like verified boot, full system MAC policies, etc. is near non-existent. That’s what passes as secure though when it’s the opposite. When people tell you that Debian is secure, it’s like someone trying to claim that Windows XP with partial security updates (via their extended support) would be secure. It’s just not based in any kind of reality with any actual reasoning / thought behind it.</p>
+  
+      <h2>“Linux kernel is shit, macOS, Windows is also shit”</h2>
+      <p>The Linux kernel is a security disaster, but so are the kernels in macOS / iOS and Windows, although they are moving towards changing. For example, iOS moved a lot of the network stack to userspace, among other things.</p>
+  
+      <h2>“Open Source is shit.”</h2>
+      <p>It’s just the fallacy that open source is more secure and privacy respecting. It’s quite often not the case. There’s also the mistaken belief that closed source software is a black box that cannot be inspected / audited, and the massively complex hardware underneath is the real black box. A lot of the underlying microcode / firmware is also a lot higher to inspect.</p>
+      <p>Really, people just like saying that their preferred software stack is secure, or that open source software is secure, when in reality it’s not the case. Desktop Linux is falling further and further behind in nearly all of these areas.</p>
+  
+      <h2>“Firejail is shit.”</h2>
+      <p>Firejail specifically is extremely problematic and I would say it substantially reduces the security of the system by acting as a massive privilege escalation hole.</p>
+  
+      <h2>“Flatpak is shit.”</h2>
+      <p>The work to try catching up like Flatpak is extremely flawed and is a failure from day 1 by not actually aiming to achieve meaningful goals with a proper threat model.</p>
+  
+
+
+      <hr>
+    <div id="exitimg">
+    </div>
+    </div>
+    
+    
+  </body>
+</html>
