@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Verification Toolkit (MVT)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        h1, h2, h3 {
+            color: #333;
+        }
+
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .android-content {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Introduction</h1>
+
+    <p>Mobile Verification Toolkit (MVT) is a collection of utilities designed to facilitate iOS and Android devices for the purpose of identifying any signs of compromise. MVT's capabilities are continuously evolving, but some of its key features include:</p>
+
+    <ul>
+        <li>Decrypt encrypted iOS backups.</li>
+        <li>Process and parse records from numerous iOS system and apps databases, logs, and system analytics.</li>
+        <li>Extract installed applications from Android devices.</li>
+        <li>Extract diagnostic information from Android devices through the adb protocol.</li>
+        <li>Compare extracted records to a provided list of malicious indicators in STIX2 format.</li>
+        <li>Generate JSON logs of extracted records, and separate JSON logs of all detected malicious traces.</li>
+        <li>Generate a unified chronological timeline of extracted records, along with a timeline all detected malicious traces.</li>
+    </ul>
+
+    <p class="android-content"> Android devices provide much less observability than iOS . Android stores very little diagnostic information useful to triage potential compromises, and because of this, mvt-android capabilities are limited as well.</p>
+
+ <title>iOS Forensic Methodology</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        h1, h2, h3 {
+            color: #333;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+
+        h4 {
+            color: #333;
+        }
+
+        em {
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>iOS Forensic Methodology</h1>
+
+    <p>Before jumping into acquiring and analyzing data from an iOS device, you should evaluate what is your precise plan of action. Because multiple options are available to you, you should define and familiarize with the most effective forensic methodology in each case.</p>
+
+    <h4>Filesystem Dump</h4>
+
+    <p>You will need to decide whether to attempt to jailbreak the device and obtain a full filesystem dump, or not.</p>
+
+    <p>While accessing the full filesystem allows extracting data that would otherwise be unavailable, it might not always be possible to jailbreak a certain iPhone model or version of iOS. In addition, depending on the type of jailbreak available, doing so might compromise some important records, pollute others, or potentially cause unintended malfunctioning of the device later in case it is used again.</p>
+
+    <p>If you are not expected to return the phone, you might want to consider attempting a jailbreak after having exhausted all other options, including a backup.</p>
+
+    <h4>iTunes Backup</h4>
+
+    <p>An alternative option is to generate an iTunes backup (in most recent version of macOS, they are no longer launched from iTunes, but directly from Finder). While backups only provide a subset of the files stored on the device, in many cases it might be sufficient to at least detect some suspicious artifacts. Backups encrypted with a password will have some additional interesting records not available in unencrypted ones, such as Safari history, Safari state, etc.</p>
+
+
+<h1>Installation</h1>
+
+    <p>Before proceeding, please note that MVT requires Python 3.6+ to run. While it should be available on most operating systems, please make sure of that before proceeding.</p>
+
+    <h2>Dependencies on Linux</h2>
+
+    <p>First install some basic dependencies that will be necessary to build all required tools:</p>
+
+    <pre><code>sudo apt install python3 python3-pip libusb-1.0-0 sqlite3</code></pre>
+
+    <p><code>libusb-1.0-0</code> is not required if you intend to only use <code>mvt-ios</code> and not <code>mvt-android</code>.</p>
+
+    <p>When working with Android devices you should additionally install <a href="https://developer.android.com/studio/releases/platform-tools">Android SDK Platform Tools</a>. If you prefer to install a package made available by your distribution of choice, please make sure the version is recent to ensure compatibility with modern Android devices.</p>
+
+    <h2>Dependencies on macOS</h2>
+
+    <p>Running MVT on macOS requires Xcode and <a href="https://brew.sh">homebrew</a> to be installed.</p>
+
+    <p>In order to install dependencies use:</p>
+
+    <pre><code>brew install python3 libusb sqlite3</code></pre>
+
+    <p><code>libusb</code> is not required if you intend to only use <code>mvt-ios</code> and not <code>mvt-android</code>.</p>
+
+    <p>When working with Android devices you should additionally install <a href="https://developer.android.com/studio/releases/platform-tools">Android SDK Platform Tools</a>:</p>
+
+    <pre><code>brew install --cask android-platform-tools</code></pre>
+
+    <p>Or by downloading the <a href="https://developer.android.com/studio/releases/platform-tools">official binary releases</a>.</p>
+
+    <h2>MVT on Windows</h2>
+
+    <p>MVT does not currently officially support running natively on Windows. While most functionality should work out of the box, there are known issues especially with <code>mvt-android</code>.</p>
+
+    <p>It is recommended to try installing and running MVT from <a href="https://docs.microsoft.com/en-us/windows/wsl/about">Windows Subsystem Linux (WSL)</a> and follow Linux installation instructions for your distribution of choice.</p>
+
+    <h2>Installing MVT</h2>
+
+    <p>If you haven't done so, you can add this to your <code>.bashrc</code> or <code>.zshrc</code> file in order to add locally installed PyPI binaries to your <code>$PATH</code>:</p>
+
+    <pre><code>export PATH=$PATH:~/.local/bin</code></pre>
+
+    <p>Then you can install MVT directly from <a href="https://pypi.org/project/mvt/">PyPI</a>:</p>
+
+    <pre><code>pip3 install mvt</code></pre>
+
+    <p>If you want to have the latest features in development, you can install MVT directly from the source code. If you installed MVT previously from pypi, you should first uninstall it using <code>pip3 uninstall mvt</code> and then install from the source code:</p>
+
+    <pre><code>git clone https://github.com/mvt-project/mvt.git
+cd mvt
+pip3 install .</code></pre>
+
+    <p>You now should have the <code>mvt-ios</code> and <code>mvt-android</code> utilities installed.</p>
+
+  <title>Dumping the Filesystem</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        h1, h2, h3 {
+            color: #333;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+
+        .warning {
+            color: red;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f8d7da;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Dumping the Filesystem</h1>
+
+    <p>While iTunes backup provides a lot of very useful databases and diagnostic data, in some cases you might want to jailbreak the device and perform a full filesystem dump. In that case, you should take a look at <a href="https://checkra.in/">checkra1n</a>, which provides an easy way to obtain root on most recent iPhone models.</p>
+
+    <div class="warning">
+        <p><strong>Warning:</strong> Before you checkra1n any device, make sure you take a full backup, and that you are prepared to do a full factory reset before restoring it. Even after using checkra1n's "Restore System," some traces of the jailbreak are still left on the device and <a href="https://github.com/checkra1n/BugTracker/issues/279">apps with anti-jailbreaks will be able to detect them</a> and stop functioning.</p>
+    </div>
+
+    <p>After having jailbroken the device, you should be able to access the phone over ssh. In order to do this, you will typically need to use iproxy, which on Debian/Ubuntu systems can be installed with <code>libusbmuxd-tools</code>. Run the command:</p>
+
+    <pre><code>iproxy 2222 44</code></pre>
+
+    <p>Now you will be able to ssh as root to localhost on port 2222 and password <code>alpine</code>. Note: if you used a jailbreak other than checkra1n, you might need to specify a different port number instead of 44.</p>
+
+    <p>At this point, you need to get access to the content of the device from your computer. One way is to run a command like <code>ssh root@localhost -p 2222 tar czf - /private > dump.tar.gz</code>, which will save a tarball on the host of the <code>/private/</code> folder from the phone. This will take a while.</p>
+
+    <p>Alternatively, you can try to run <code>sftp-server</code> for iOS and mount the filesystem locally using <code>sshfs</code>.</p>
+
+    <h2>Use <code>sshfs</code> on iOS</h2>
+
+    <p>If you decide to try to use <code>sshfs</code>, you first have to download locally a compiled copy of sftp-server:</p>
+
+    <pre><code>wget https://github.com/dweinstein/openssh-ios/releases/download/v7.5/sftp-server</code></pre>
+
+    <p>Then upload the binary to the iPhone:</p>
+
+    <pre><code>scp -P2222 sftp-server root@localhost:.</code></pre>
+
+    <p>You will need to ssh into the device and set some entitlements to allow <code>sftp-server</code> to run. These entitlements can be copied from an existing binary:</p>
+
+    <pre><code>chmod +x sftp-server
+ldid -e /binpack/bin/sh > /tmp/sh-ents
+ldid -S /tmp/sh-ents sftp-server</code></pre>
+
+    <p>Now you can create a folder on the host and use it as a mount point (<strong>note:</strong> do not create this folder in <code>/tmp/</code>):</p>
+
+    <pre><code>mkdir root_mount
+sshfs -p 2222 -o sftp_server=/var/root/sftp-server root@localhost:/ root_mount</code></pre>
+
+<style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        h1, h2, h3 {
+            color: #333;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Check a Filesystem Dump with <code>mvt-ios</code></h1>
+
+    <p>When you are ready, you can proceed running <code>mvt-ios</code> against the filesystem dump or mount point:</p>
+
+    <pre><code>$ mvt-ios check-fs --help
+Usage: mvt-ios check-fs [OPTIONS] DUMP_PATH
+
+  Extract artifacts from a full filesystem dump
+
+Options:
+  -i, --iocs PATH     Path to indicators file
+  -o, --output PATH   Specify a path to a folder where you want to store JSON
+                      results
+
+  -f, --fast          Avoid running time/resource consuming features
+  -l, --list-modules  Print list of available modules and exit
+  -m, --module TEXT   Name of a single module you would like to run instead of
+                      all
+
+  --help              Show this message and exit.</code></pre>
+
+    <p>Following is an example of basic usage of <code>check-fs</code>:</p>
+
+    <pre><code>mvt-ios check-fs /path/to/filesystem/dump/ --output /path/to/output/</code></pre>
+
+    <p>This command will create a few JSON files containing the results from the extraction. If you do not specify a <code>--output</code> option, <code>mvt-ios</code> will just process the data without storing results on disk.</p>
+
+    <p>Through the <code>--iocs</code> argument, you can specify a <a href="https://oasis-open.github.io/cti-documentation/stix/intro">STIX2</a> file defining a list of malicious indicators to check against the records extracted from the backup by <code>mvt</code>. Any matches will be highlighted in the terminal output as well as saved in the output folder using a "<em>*_detected*</em>" suffix to the JSON file name.</p>
+
+
+<h1 id="records-extracted-by-mvt-ios-">Records extracted by <code>mvt-ios</code></h1>
+<p>In this page you can find a (reasonably) up-to-date breakdown of the files created by MVT when performing an analysis of logs, backups or filesystem dumps.</p>
+<h2 id="records-extracted-by-check-fs-or-check-backup-">Records extracted by <code>check-fs</code> or <code>check-backup</code></h2>
+<h3 id="-analytics-json-"><code>analytics.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup (if encrypted): :material-close:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>Analytics</code> module. The module extracts records from the plists inside the SQLite databases located at <em>private/var/Keychains/Analytics/\</em>.db*, which contain various analytics information regarding networking, certificate-pinning, TLS, etc. failures.</p>
+<p>If indicators are provided through the command-line, processes and domains are checked against all fields of the plist. Any matches are stored in <em>analytics_detected.json</em>.</p>
+<hr>
+<h3 id="-applications-json-"><code>applications.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>Applications</code> module. The module extracts the list of applications installed on the device from the <code>Info.plist</code> file in backup, or from the <code>iTunesMetadata.plist</code> files in a file system dump. These records contains detailed information on the source and installation of the app.</p>
+<p>If indicators are provided through the command-line, processes and application ids are checked against the app name of each application. It also flags any applications not installed from the AppStore. Any matches are stored in <em>applications_detected.json</em>.</p>
+<hr>
+<h3 id="-backup_info-json-"><code>backup_info.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-close:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>BackupInfo</code> module. The module extracts some details about the backup and the device, such as name, phone number, IMEI, product type and version.</p>
+<hr>
+<h3 id="-cache_files-json-"><code>cache_files.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-close:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>CacheFiles</code> module. The module extracts records from all SQLite database files stored on disk with the name <em>Cache.db</em>. These databases typically contain data from iOS&#39; <a href="https://developer.apple.com/documentation/foundation/nsurlcache">internal URL caching</a>. Through this module you might be able to recover records of HTTP requests and responses performed my applications as well as system services, that would otherwise be unavailable. For example, you might see HTTP requests part of an exploitation chain performed by an iOS service attempting to download a first stage malicious payload.</p>
+<p>If indicators are provided through the command-line, they are checked against the requested URL. Any matches are stored in <em>cache_files_detected.json</em>.</p>
+<hr>
+<h3 id="-calendar-json-"><code>calendar.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>Calendar</code> module. This module extracts all CalendarItems from the <code>Calendar.sqlitedb</code> database. This database contains all calendar entries from the different calendars installed on the phone.</p>
+<p>If indicators are provided through the command-line, email addresses are checked against the inviter&#39;s email of the different events. Any matches are stored in <em>calendar_detected.json</em>.</p>
+<hr>
+<h3 id="-calls-json-"><code>calls.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup (if encrypted): :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>Calls</code> module. The module extracts records from a SQLite database located at <em>/private/var/mobile/Library/CallHistoryDB/CallHistory.storedata</em>, which contains records of incoming and outgoing calls, including from messaging apps such as WhatsApp or Skype.</p>
+<hr>
+<h3 id="-chrome_favicon-json-"><code>chrome_favicon.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>ChromeFavicon</code> module. The module extracts records from a SQLite database located at <em>/private/var/mobile/Containers/Data/Application/\</em>/Library/Application Support/Google/Chrome/Default/Favicons*, which contains a mapping of favicons&#39; URLs and the visited URLs which loaded them.</p>
+<p>If indicators are provided through the command-line, they are checked against both the favicon URL and the visited URL. Any matches are stored in <em>chrome_favicon_detected.json</em>.</p>
+<hr>
+<h3 id="-chrome_history-json-"><code>chrome_history.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>ChromeHistory</code> module. The module extracts records from a SQLite database located at <em>/private/var/mobile/Containers/Data/Application/\</em>/Library/Application Support/Google/Chrome/Default/History*, which contains a history of URL visits.</p>
+<p>If indicators are provided through the command-line, they are checked against the visited URL. Any matches are stored in <em>chrome_history_detected.json</em>.</p>
+<hr>
+<h3 id="-configuration_profiles-json-"><code>configuration_profiles.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-close:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>ConfigurationProfiles</code> module. The module extracts details about iOS configuration profiles that have been installed on the device. These should include both default iOS as well as third-party profiles.</p>
+<p>If indicators are provided through the command-line, they are checked against the configuration profile UUID to identify any known malicious profiles. Any matches are stored in <em>configuration_profiles_detected.json</em>.</p>
+<hr>
+<h3 id="-contacts-json-"><code>contacts.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>Contacts</code> module. The module extracts records from a SQLite database located at <em>/private/var/mobile/Library/AddressBook/AddressBook.sqlitedb</em>, which contains records from the phone&#39;s address book. While this database obviously would not contain any malicious indicators per se, you might want to use it to compare records from other apps (such as iMessage, SMS, etc.) to filter those originating from unknown origins.</p>
+<hr>
+<h3 id="-firefox_favicon-json-"><code>firefox_favicon.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>FirefoxFavicon</code> module. The module extracts records from a SQLite database located at <em>/private/var/mobile/profile.profile/browser.db</em>, which contains a mapping of favicons&#39; URLs and the visited URLs which loaded them.</p>
+<p>If indicators are provided through the command-line, they are checked against both the favicon URL and the visited URL. Any matches are stored in <em>firefox_favicon_detected.json</em>.</p>
+<hr>
+<h3 id="-firefox_history-json-"><code>firefox_history.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>FirefoxHistory</code> module. The module extracts records from a SQLite database located at <em>/private/var/mobile/profile.profile/browser.db</em>, which contains a history of URL visits.</p>
+<p>If indicators are provided through the command-line, they are checked against the visited URL. Any matches are stored in <em>firefox_history_detected.json</em>.</p>
+<hr>
+<h3 id="-global_preferences-json-"><code>global_preferences.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>GlobalPreferences</code> module. The module extracts records from a Plist file located at <em>/private/var/mobile/Library/Preferences/.GlobalPreferences.plist</em>, which contains a system preferences including if Lockdown Mode is enabled.</p>
+<hr>
+<h3 id="-id_status_cache-json-"><code>id_status_cache.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup (before iOS 14.7): :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>IDStatusCache</code> module. The module extracts records from a plist file located at <em>/private/var/mobile/Library/Preferences/com.apple.identityservices.idstatuscache.plist</em>, which contains a cache of Apple user ID authentication. This chance will indicate when apps like Facetime and iMessage first established contacts with other registered Apple IDs. This is significant because it might contain traces of malicious accounts involved in exploitation of those apps.</p>
+<p>Starting from iOS 14.7.0, this file is empty or absent.</p>
+<hr>
+<h3 id="-shortcuts-json-"><code>shortcuts.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>Shortcuts</code> module. The module extracts records from an SQLite database located at <em>/private/var/mobile/Library/Shortcuts/Shortcuts.sqlite</em>, which contains records about the Shortcuts application. Shortcuts are a built-in iOS feature which allows users to automation certain actions on their device. In some cases the legitimate Shortcuts app may be abused by spyware to maintain persistence on an infected devices.</p>
+<hr>
+<h3 id="-interaction_c-json-"><code>interaction_c.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup (if encrypted): :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>InteractionC</code> module. The module extracts records from a SQLite database located at <em>/private/var/mobile/Library/CoreDuet/People/interactionC.db</em>, which contains details about user interactions with installed apps.</p>
+<hr>
+<h3 id="-locationd_clients-json-"><code>locationd_clients.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>LocationdClients</code> module. The module extracts records from a plist file located at <em>/private/var/mobile/Library/Caches/locationd/clients.plist</em>, which contains a cache of apps which requested access to location services.</p>
+<hr>
+<h3 id="-manifest-json-"><code>manifest.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-close:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>Manifest</code> module. The module extracts records from the SQLite database <em>Manifest.db</em> contained in iTunes backups, and which indexes the locally backed-up files to the original paths on the iOS device.</p>
+<p>If indicators are provided through the command-line, they are checked against the original relative path in case. In some cases, there might be records of files created containing a domain name in their name, for example in the case of browser cache folders. Any matches are stored in <em>manifest_detected.json</em>.</p>
+<hr>
+<h3 id="-os_analytics_ad_daily-json-"><code>os_analytics_ad_daily.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>OSAnalyticsADDaily</code> module. The module extracts records from a plist located <em>private/var/mobile/Library/Preferences/com.apple.osanalytics.addaily.plist</em>, which contains a history of data usage by processes running on the system. Besides the network statistics, these records are particularly important because they might show traces of malicious process executions and the relevant timeframe.</p>
+<p>If indicators are provided through the command-line, they are checked against the process names. Any matches are stored in <em>os_analytics_ad_daily_detected.json</em>.</p>
+<hr>
+<h3 id="-datausage-json-"><code>datausage.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>Datausage</code> module. The module extracts records from a SQLite database located <em>/private/var/wireless/Library/Databases/DataUsage.sqlite</em>, which contains a history of network data usage by processes running on the system. It does not log network traffic through WiFi (the fields <code>WIFI_IN</code> and <code>WIFI_OUT</code> are always empty), and the <code>WWAN_IN</code> and <code>WWAN_OUT</code> fields are stored in bytes. Besides the network statistics, these records are particularly important because they might show traces of malicious process executions and the relevant timeframe. In particular, processes which do not have a valid bundle ID might require particular attention.</p>
+<p>If indicators are provided through the command-line, they are checked against the process names. Any matches are stored in <em>datausage_detected.json</em>. If running on a full filesystem dump and if the <code>--fast</code> flag was not enabled by command-line, mvt-ios will highlight processes which look suspicious and check the presence of a binary file of the same name in the dump.</p>
+<hr>
+<h3 id="-netusage-json-"><code>netusage.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-close:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>Netusage</code> module. The module extracts records from a SQLite database located <em>/private/var/networkd/netusage.sqlite</em>, which contains a history of data usage by processes running on the system. Besides the network statistics, these records are particularly important because they might show traces of malicious process executions and the relevant timeframe. In particular, processes which do not have a valid bundle ID might require particular attention.</p>
+<p>If indicators are provided through the command-line, they are checked against the process names. Any matches are stored in <em>netusage_detected.json</em>. If running on a full filesystem dump and if the <code>--fast</code> flag was not enabled by command-line, mvt-ios will highlight processes which look suspicious and check the presence of a binary file of the same name in the dump.</p>
+<hr>
+<h3 id="-profile_events-json-"><code>profile_events.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-close:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>ProfileEvents</code> module. The module extracts a timeline of configuration profile operations. For example, it should indicate when a new profile was installed from the Settings app, or when one was removed.</p>
+<hr>
+<h3 id="-safari_browser_state-json-"><code>safari_browser_state.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup (if encrypted): :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>SafariBrowserState</code> module. The module extracts records from the SQLite databases located at <em>/private/var/mobile/Library/Safari/BrowserState.db</em> or <em>/private/var/mobile/Containers/Data/Application/\</em>/Library/Safari/BrowserState.db*, which contain records of opened tabs.</p>
+<p>If indicators are provided through the command-line, they are checked against the visited URL. Any matches are stored in <em>safari_browser_state_detected.json</em>.</p>
+<hr>
+<h3 id="-safari_favicon-json-"><code>safari_favicon.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-close:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>SafariFavicon</code> module. The module extracts records from the SQLite databases located at <em>/private/var/mobile/Library/Image Cache/Favicons/Favicons.db</em> or <em>/private/var/mobile/Containers/Data/Application/\</em>/Library/Image Cache/Favicons/Favicons.db*, which contain mappings of favicons&#39; URLs and the visited URLs which loaded them.</p>
+<p>If indicators are provided through the command-line, they are checked against both the favicon URL and the visited URL. Any matches are stored in <em>safari_favicon_detected.json</em>.</p>
+<hr>
+<h3 id="-safari_history-json-"><code>safari_history.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup (if encrypted): :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>SafariHistory</code> module. The module extracts records from the SQLite databases located at <em>/private/var/mobile/Library/Safari/History.db</em> or <em>/private/var/mobile/Containers/Data/Application/\</em>/Library/Safari/History.db*, which contain a history of URL visits.</p>
+<p>If indicators are provided through the command-line, they are checked against the visited URL. Any matches are stored in <em>safari_history_detected.json</em>.</p>
+<hr>
+<h3 id="-shutdown_log-json-"><code>shutdown_log.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup (if encrypted): :material-close:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>ShutdownLog</code> module. The module extracts records from the shutdown log located at <em>private/var/db/diagnostics/shutdown.log</em>. When shutting down an iPhone, a SIGTERM will be sent to all processes runnning. The <code>shutdown.log</code> file will log any process (with its pid and path) that did not shut down after the SIGTERM was sent.</p>
+<p>If indicators are provided through the command-line, they are checked against the paths. Any matches are stored in <em>shutdown_log_detected.json</em>.</p>
+<hr>
+<h3 id="-sms-json-"><code>sms.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>SMS</code> module. The module extracts a list of SMS messages from the SQLite database located at <em>/private/var/mobile/Library/SMS/sms.db</em>.</p>
+<p>If indicators are provided through the command-line, they are checked against the extracted HTTP links. Any matches are stored in <em>sms_detected.json</em>.</p>
+<hr>
+<h3 id="-sms_attachments-json-"><code>sms_attachments.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>SMSAttachments</code> module. The module extracts details about attachments sent via SMS or iMessage from the same database used by the <code>SMS</code> module. These records might be useful to indicate unique patterns that might be indicative of exploitation attempts leveraging potential vulnerabilities in file format parsers or other forms of file handling by the Messages app.</p>
+<hr>
+<h3 id="-tcc-json-"><code>tcc.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>TCC</code> module. The module extracts records from a SQLite database located at <em>/private/var/mobile/Library/TCC/TCC.db</em>, which contains a list of which services such as microphone, camera, or location, apps have been granted or denied access to.</p>
+<hr>
+<h3 id="-version_history-json-"><code>version_history.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-close:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>IOSVersionHistory</code> module. The module extracts records of iOS software updates from analytics plist files located at <em>/private/var/db/analyticsd/Analytics-Journal-\</em>.ips*.</p>
+<hr>
+<h3 id="-webkit_indexeddb-json-"><code>webkit_indexeddb.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-close:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>WebkitIndexedDB</code> module. The module extracts a list of file and folder names located at the following path <em>/private/var/mobile/Containers/Data/Application/\</em>/Library/WebKit/WebsiteData/IndexedDB*, which contains IndexedDB files created by any app installed on the device.</p>
+<p>If indicators are provided through the command-line, they are checked against the extracted names. Any matches are stored in <em>webkit_indexeddb_detected.json</em>.</p>
+<hr>
+<h3 id="-webkit_local_storage-json-"><code>webkit_local_storage.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-close:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>WebkitLocalStorage</code> module. The module extracts a list of file and folder names located at the following path <em>/private/var/mobile/Containers/Data/Application/\</em>/Library/WebKit/WebsiteData/LocalStorage/*, which contains local storage files created by any app installed on the device.</p>
+<p>If indicators are provided through the command-line, they are checked against the extracted names. Any matches are stored in <em>webkit_local_storage_detected.json</em>.</p>
+<hr>
+<h3 id="-webkit_resource_load_statistics-json-"><code>webkit_resource_load_statistics.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios <code>WebkitResourceLoadStatistics</code> module. The module extracts records from available WebKit ResourceLoadStatistics <em>observations.db</em> SQLite3 databases. These records should indicate domain names contacted by apps, including a timestamp.</p>
+<p>If indicators are provided through the command-line, they are checked against the extracted domain names. Any matches are stored in <em>webkit_resource_load_statistics_detected.json</em>.</p>
+<hr>
+<h3 id="-webkit_safari_view_service-json-"><code>webkit_safari_view_service.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-close:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>WebkitSafariViewService</code> module. The module extracts a list of file and folder names located at the following path <em>/private/var/mobile/Containers/Data/Application/\</em>/SystemData/com.apple.SafariViewService/Library/WebKit/WebsiteData/*, which contains files cached by SafariVewService.</p>
+<p>If indicators are provided through the command-line, they are checked against the extracted names. Any matches are stored in <em>webkit_safari_view_service_detected.json</em>.</p>
+<hr>
+<h3 id="-webkit_session_resource_log-json-"><code>webkit_session_resource_log.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>WebkitSessionResourceLog</code> module. The module extracts records from plist files with the name <em>full_browsing_session_resourceLog.plist</em>, which contain records of resources loaded by different domains visited.</p>
+<p>If indicators are provided through the command-line, they are checked against the extract domains. Any matches are stored in <em>webkit_session_resource_log_detected.json</em>.</p>
+<hr>
+<h3 id="-whatsapp-json-"><code>whatsapp.json</code></h3>
+<p>!!! info &quot;Availability&quot;
+    Backup: :material-check:
+    Full filesystem dump: :material-check:</p>
+<p>This JSON file is created by mvt-ios&#39; <code>WhatsApp</code> module. The module extracts a list of WhatsApp messages from the SQLite database located at <em>private/var/mobile/Containers/Shared/AppGroup/\</em>/ChatStorage.sqlite*.</p>
+<p>If indicators are provided through the command-line, they are checked against the extracted HTTP links. Any matches are stored in <em>whatsapp_detected.json</em>.</p>
+
+
+
+
+</body>
+</html>
